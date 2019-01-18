@@ -2,6 +2,23 @@ The goal of this project is to produce a tool to facilitate the
 extraction of images and associated metatdata from scanned books on
 archive.org.
 
+
+# Fetching Data to Local File System
+
+The command
+
+<pre>
+fetch_pages.py hartnessflatturr00unse
+</pre>
+
+will create a directory named hartnessflatturr00unse and download the
+book with that URI path component title to that directory.  The
+download will include various forms of metadata and the scanned images
+of each page, as well as a djvu XML file containing the OCRed text.
+
+
+# Background About the Data
+
 For some document,
 e.g. https://archive.org/metadata/hartnessflatturr00unse, we can fetch
 the document's metadata with
