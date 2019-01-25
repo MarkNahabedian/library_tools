@@ -5,7 +5,15 @@
 #    https://sno.phy.queensu.ca/~phil/exiftool/TagNames/Jpeg2000.html
 
 import os
+import os.path
 
+
+def scan_all(directory):
+    for f in os.listdir(directory):
+        fullpath = os.path.join(directory, f)
+        print()
+        print(fullpath)
+        scan_jp2(fullpath)
 
 def scan_jp2(filename):
     filelength = os.stat(filename).st_size
@@ -17,9 +25,11 @@ def scan_jp2(filename):
             section_length = big_endian_32(header)
             tag = get_tag(header)
             print('%8d: %8d %s    %r' % (start, section_length, tag, header))
-            if section_length == 0:
+            if section_length <= 0:
                 break
             f.seek(start + section_length, os.SEEK_SET)
+        if f.tell() < filelength:
+            print('Scan terminated abnormally.')
 
 def get_tag(header):
     result = ''
@@ -27,7 +37,7 @@ def get_tag(header):
         result += chr(header[index])
     return result
 
-def headerig_endian_32(header):
+def big_endian_32(header):
     result = 0
     for index in range(0, 4):
         result = result << 8
