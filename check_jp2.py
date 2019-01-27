@@ -3,6 +3,7 @@
 # Resources:
 #    http://www.file-recovery.com/jp2-signature-format.htm
 #    https://sno.phy.queensu.ca/~phil/exiftool/TagNames/Jpeg2000.html
+#    http://www.ece.drexel.edu/courses/ECE-C453/Notes/jpeg2000.pdf
 
 import os
 import os.path
