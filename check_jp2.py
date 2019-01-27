@@ -18,22 +18,8 @@ def scan_all(directory):
 def scan_jp2(filename):
     filelength = os.stat(filename).st_size
     root_container = RootJP2Box(filelength)
-    print('Total size: %d' % filelength)
     with open(filename, 'rb') as f:
-        current_container = root_container
-        while f.tell() < filelength:
-            box = readBox(f)
-            print('%8d: %8d "%s"  %s %s' % (
-                box.box_start, box.box_size, box.box_type, box.__class__.__name__, box.isContainer()))
-            current_container.add_child(box)
-            if box.box_end == current_container.box_end:
-                current_container = current_container.containing_box
-            elif box.isContainer():
-                current_container = box
-            if not box.isContainer():
-                f.seek(box.box_end, os.SEEK_SET)
-        if f.tell() < filelength:
-            print('Scan terminated abnormally.')
+        root_container.handle_data(f)
     return root_container
 
 def get_tag(header):
@@ -50,30 +36,26 @@ def big_endian_int(buffer, offset=0, bytecount = 4):
     return result
 
 
-def readBox(f):
-    '''Reads the next box from the input stream and return it.
-    Leaves the file pointer at the start of the box data, after any
-    header fields.
-
-    '''
-    box_start = f.tell()
-    header = f.read(8)
-    box_size = big_endian_int(header)
-    if box_size == 1:
-        xlbox = f.read(8)
-        box_size = big_endian_int(xlbox, bytecount=8)
-    elif box_size == 0:
-        box_size = os.fstat(f.fileno()).st_size - box_start
-    box_type = get_tag(header)
-    return JP2Box.class_for_box_type(box_type)(box_type, box_start, box_size)
-
-
 class JP2Box (object):
     '''JP2Box is both the superclass of all boxes and the defauklt
     imlementation for boxes we don't have a more specific
     implementation for,'''
     box_type = None
-    isContainerBox = False
+
+    @classmethod
+    def read_box(cls, f):
+        box_start = f.tell()
+        header = f.read(8)
+        box_size = big_endian_int(header)
+        if box_size == 1:
+            xlbox = f.read(8)
+            box_size = big_endian_int(xlbox, bytecount=8)
+        elif box_size == 0:
+            box_size = os.fstat(f.fileno()).st_size - box_start
+        box_type = get_tag(header)
+        box = JP2Box.class_for_box_type(box_type)(box_type, box_start, box_size)
+        box.handle_data(f)
+        return box
 
     @classmethod
     def class_for_box_type(cls, box_type):
@@ -92,14 +74,18 @@ class JP2Box (object):
         self.box_type = box_type
         self.box_start = box_start
         self.box_size = box_size
-        self.boxes = [] if self.isContainer else None
+        self.boxes = None
 
     @property
     def box_end(self):
         return self.box_start + self.box_size
 
     def isContainer(self):
-        return self.__class__.isContainerBox
+        return False
+
+    def handle_data(self, f):
+        # Default behavior is to skip oover the data
+        f.seek(self.box_end, os.SEEK_SET)
 
     def add_child(self, box):
         if not self.isContainer:
@@ -107,15 +93,51 @@ class JP2Box (object):
         self.boxes.append(box)
         box.containing_box = self
 
+    def show(self, indent=0):
+        print('%8d: %s%8d %s' % (
+            self.box_start,
+            '  ' * indent,
+            self.box_size,
+            self.box_type))
+        if self.boxes != None:
+            for child in self.boxes:
+                child.show(indent + 1)
 
-class RootJP2Box (JP2Box):
-    box_type = None
-    isContainerBox = True
 
-    def __init__(self, box_size):
-        self.containing_box = None
-        self.box_type = self.__class__.box_type
-        self.box_start = 0
-        self.box_size = box_size
+class JP2ContainerBox(JP2Box):
+    '''JP2ContainerBox is the superclass of all boxes that can contain other boxes.'''
+    def isContainer(self):
+        return True
+
+    def __init__(self, *args):
+        super().__init__(*args)
         self.boxes = []
+
+    def handle_data(self, f):
+        # Read the contained boxes
+        while f.tell() < self.box_end:
+            box = JP2Box.read_box(f)
+            self.add_child(box)
+
+
+class RootJP2Box (JP2ContainerBox):
+    box_type = None
         
+    def __init__(self, file_size):
+        super().__init__(None, 0, file_size)
+
+
+class JP2SignatureBox(JP2Box):
+    box_type = 'jP  '
+    isContainerBox = False
+
+    def handle_data(self, f):
+        expect = b'\r\n\x87\n'
+        data = f.read(4)
+        if data != expect:
+            raise Exception('Bad JP2 signature data: %r, expected %r' % (data, expect))
+        
+
+class JP2HeaderBox(JP2ContainerBox):
+    box_type = 'jp2h'
+
