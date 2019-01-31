@@ -55,6 +55,20 @@ class Book (object):
     def jp2_directory(self):
         return os.path.join(self.directory, 'pages', self.name_token + '_jp2')
 
+    def cache_jp2_page_sizes(self):
+        for page in self.pages:
+            page.load_image()
+
+    def list_pages(self):
+        print('Book:  %s' % self.name_token)
+        for page in self.pages:
+            print('%4d %s:  %d(%r)w %d(%r)h' % (
+                page.sequence_number,
+                ('%4d' % page.page_number) if page.page_number else '    ',
+                page.jp2_width, page.metadata_width,
+                page.jp2_height, page.metadata_height))
+
+
 
 class Page (object):
     '''Page is a repository for the information we can collect about one page of a book.'''
@@ -82,6 +96,19 @@ class Page (object):
         if self.metadata:
             return self.metadata.page_number
         return None
+
+    @property
+    def metadata_width(self):
+        if self.metadata:
+            return self.metadata.image_width
+        return None
+
+    @property
+    def metadata_height(self):
+        if self.metadata:
+            return self.metadata.image_height
+        return None
+
 
 
 class PageMetadata (object):
@@ -116,6 +143,7 @@ def extract_sequence_number(regexp, filepath):
     return None
 
 
+# We could interpolate page numbers for those pages where we don't find one.
 def infer_page_number(object_elt):
     '''infer_page_number attempts to infer the page number (ad printed on the page) from the page's OCR data.
     It is not clever.'''
