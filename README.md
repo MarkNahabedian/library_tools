@@ -2,8 +2,13 @@ The goal of this project is to produce a tool to facilitate the
 extraction of images and associated metatdata from scanned books on
 archive.org.
 
+The books are from the libraries of the Massachusetts Institute of
+Technology.  They were scanned by an outside contractor once their
+copyrights had expired.
 
 # Fetching Data to Local File System
+
+The documents I'm working with are found at https://archive.org/details/mitlibrariespublicdomain.
 
 The command
 
@@ -11,13 +16,27 @@ The command
 fetch_pages.py hartnessflatturr00unse
 </pre>
 
-will create a directory named hartnessflatturr00unse and download the
-book with that URI path component title to that directory.  The
-download will include various forms of metadata and the scanned images
-of each page, as well as a djvu XML file containing the OCRed text.
+will create a directory named hartnessflatturr00unse in the current
+directory and download the book with that URI path component title to
+that directory.  The download will include various forms of metadata
+and the scanned images of each page, as well as a djvu XML file
+containing the OCRed text.  Thumbnail images of each page and a
+descriptive html file are also created.
+
+# Requirements:
+
+The code expects to run in some version of python3.
+
+It also requires the yattag package:
+
+<pre>
+pip install yattag
+</pre>
 
 
-# Background About the Data
+# Background About the Data and Notes by the Implementor
+
+The remaining is probably not of interest to most users.
 
 For some document,
 e.g. https://archive.org/metadata/hartnessflatturr00unse, we can fetch
@@ -81,3 +100,5 @@ scanner.
 I wonder if we can programatically read each page image and erase the
 text (by clearing its bounding boxes), hopefully leaving only the
 figures.
+
+

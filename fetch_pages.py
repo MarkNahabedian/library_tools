@@ -7,6 +7,9 @@ import os
 import os.path
 import archive_org
 import zipfile
+import page
+from write_html import write_html
+
 
 parser = argparse.ArgumentParser(description='''
 %(prog)s is a special purpose tool that was developed to
@@ -39,6 +42,9 @@ def main():
     args = parser.parse_args()
     for book in args.book_title_path_component:
         fetch_book(book)
+        b = page.Book(book)
+        b.make_thumbnails()
+        write_html(b)
 
 # ??? Should we be working with the processed or the original jp2 files?
 PAGES_FORMAT = 'Single Page Processed JP2 ZIP'
