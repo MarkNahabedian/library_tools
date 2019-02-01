@@ -12,7 +12,7 @@ class Book (object):
 
     def __init__(self, directory):
         '''directory is the directory that was created by fetch_pages.py.'''
-        assert os.path.isdir(directory)
+        # assert os.path.isdir(directory)
         # ignore terminal slash.
         if os.path.basename(directory) == '':
             self.directory = directory[0:-1]
@@ -90,21 +90,21 @@ class DoublinCoreMetadata (object):
     DOUBLIN_CORE_NAMESPACE = 'http://purl.org/dc/elements/1.1/'
 
     def __init__(self, book):
-        def eltpath(tag):
-            return './/{%s}%s' % (
-                self.__class__.DOUBLIN_CORE_NAMESPACE, tag)
-        def optional(x):
-            if x:
-                return x.text
-            return ''
         tree = ET.parse(os.path.join(book.directory,
                                      book.name_token + '_dc.xml'))
-        self.title = optional(tree.find(eltpath('title')))
-        self.contributor = optional(tree.find(eltpath('contributor')))
-        self.publisher = optional(tree.find(eltpath('publisher')))
-        self.date = optional(tree.find(eltpath('date')))
-        self.description = [d.text for d in tree.findall(eltpath('description'))]
-        self.subject = [s.text for s in tree.findall(eltpath('subject'))]
+        def elts(tag):
+            return tree.findall('.//{%s}%s' % (
+                self.__class__.DOUBLIN_CORE_NAMESPACE, tag))
+        def maybe(elts):
+            if len(elts) > 0:
+                return elts[0].text
+            return ''
+        self.title = maybe(elts('title'))
+        self.contributor = maybe(elts('contributor'))
+        self.publisher = maybe(elts('publisher'))
+        self.date = maybe(elts('date'))
+        self.description = [d.text for d in elts('description')]
+        self.subject = [s.text for s in elts('subject')]
         book.dc_metadata = self
 
 
