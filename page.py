@@ -55,6 +55,21 @@ class Book (object):
     def jp2_directory(self):
         return os.path.join(self.directory, 'pages', self.name_token + '_jp2')
 
+    def thumbnails_dir(self):
+        return os.path.join(self.directory, 'thumbnails')
+
+    def make_thumbnails(self):
+        td = self.thumbnails_dir()
+        try:
+            os.mkdir(td)
+        except OSError:
+            pass
+        for page in self.pages:
+            img = page.load_image()
+            img.thumbnail((128, 128))
+            img.save(os.path.join(td, '%04d.jpg' % page.sequence_number),
+                     'JPEG')
+
     def cache_jp2_page_sizes(self):
         for page in self.pages:
             page.load_image()
@@ -67,7 +82,6 @@ class Book (object):
                 ('%4d' % page.page_number) if page.page_number else '    ',
                 page.jp2_width, page.metadata_width,
                 page.jp2_height, page.metadata_height))
-
 
 
 class Page (object):
