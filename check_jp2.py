@@ -166,24 +166,25 @@ class JP2ImageHeader(JP2Box):
         print('ihdr data start', f.tell())
         buffer = f.read(self.data_size)
         print(buffer)
-        self.major_version = buffer[0]
-        self.minor_version = buffer[1]
-        self.number_of_components = big_endian_int(buffer, 2, 2)
-        self.image_height = big_endian_int(buffer, 4, 4)
-        self.image_width = big_endian_int(buffer, 8, 4)
-        self.bits_per_component = buffer[12]
-        self.compression_type = buffer[13]
-        # self.colorspace_unknown = buffer[14]
-        # self.intelllectual_property = buffer[15]
+        # self.major_version = buffer[0]
+        # self.minor_version = buffer[1]
+        # self.number_of_components = big_endian_int(buffer, 0, 2)
+        self.image_height = big_endian_int(buffer, 0, 4)
+        self.image_width = big_endian_int(buffer, 4, 4)
+        # self.bits_per_component = buffer[10]
+        # self.compression_type = buffer[11]
+        # self.colorspace_unknown = buffer[12]
+        # self.intelllectual_property = buffer[13]
 
     def details(self):
         return 'version %d.%d %dw %dh %0x %0x' % (
-            self.major_version,
-            self.minor_version,
+            0, # self.major_version,
+            0, # self.minor_version,
             self.image_width,
             self.image_height,
-            self.bits_per_component,
-            self.compression_type)
+            0, # self.bits_per_component,
+            0, # self.compression_type
+        )
 
 
 class JP2ColorSpecification(JP2Box):
