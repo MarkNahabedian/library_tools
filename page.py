@@ -67,8 +67,7 @@ class Book (object):
         for page in self.pages:
             img = page.load_image()
             img.thumbnail((128, 128))
-            img.save(os.path.join(td, '%04d.jpg' % page.sequence_number),
-                     'JPEG')
+            img.save(page.thumbnail_path(), 'JPEG')
 
     def cache_jp2_page_sizes(self):
         for page in self.pages:
@@ -123,6 +122,9 @@ class Page (object):
             return self.metadata.image_height
         return None
 
+    def thumbnail_path(self):
+        return os.path.join(self.book.thumbnails_dir(),
+                            '%04d.jpg' % self.sequence_number)
 
 
 class PageMetadata (object):
@@ -133,6 +135,7 @@ class PageMetadata (object):
     def __init__(self, object_elt):
         self.image_width = int(object_elt.attrib['width'])
         self.image_height = int(object_elt.attrib['height'])
+        self.line_count = len(object_elt.findall('.//LINE'))
         self.page_file = None
         self.sequence_number = None
         self.dpi = None
