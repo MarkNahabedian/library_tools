@@ -19,6 +19,7 @@ class Book (object):
         else:
             self.directory = directory
         self.name_token = os.path.basename(self.directory)
+        self.dc_metadata = DoublinCoreMetadata(self)
         self.pages = []
         jp2dir = self.jp2_directory()
         for filename in os.listdir(jp2dir):
@@ -81,6 +82,25 @@ class Book (object):
                 ('%4d' % page.page_number) if page.page_number else '    ',
                 page.jp2_width, page.metadata_width,
                 page.jp2_height, page.metadata_height))
+
+
+class DoublinCoreMetadata (object):
+    '''DoublinCoreMetadata holds the Doublin Core metadata for a Book.'''
+    DOUBLIN_CORE_NAMESPACE = 'http://purl.org/dc/elements/1.1/'
+
+    def __init__(self, book):
+        def eltpath(tag):
+            return './/{%s}%s' % (
+                self.__class__.DOUBLIN_CORE_NAMESPACE, tag)
+        tree = ET.parse(os.path.join(book.directory,
+                                     book.name_token + '_dc.xml'))
+        self.title = tree.find(eltpath('title')).text
+        self.contributor = tree.find(eltpath('contributor')).text
+        self.publisher = tree.find(eltpath('publisher')).text
+        self.date = tree.find(eltpath('date')).text
+        self.description = [d.text for d in tree.findall(eltpath('description'))]
+        self.subject = [s.text for s in tree.findall(eltpath('subject'))]
+        book.dc_metadata = self
 
 
 class Page (object):

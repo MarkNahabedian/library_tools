@@ -1,7 +1,7 @@
 # Wriye an HTML file that describes the book and its pages.
 
 import os.path
-import yattag
+import yattag     # pip install yattag
 
 
 STYLESHEET = '''
@@ -34,7 +34,28 @@ def write_html(book):
         with tag('body'):
             with tag('h1'):
                 text(book.name_token)
-            # TODO: book metadata
+            with tag('h2'):
+                text('Doublin Core Metadata')
+            with tag('dl'):
+                def item(name, value):
+                    with tag('dt'):
+                        text(name)
+                    with tag('dd'):
+                        if isinstance(value, str):
+                            text(value or '')
+                        else:
+                            for i in range(len(value)):
+                                if i > 0:
+                                    with tag('br'): pass
+                                text(value[i])
+                item('Title', book.dc_metadata.title)
+                item('Contributor', book.dc_metadata.contributor)
+                item('Publisher', book.dc_metadata.publisher)
+                item('Date', book.dc_metadata.date)
+                item('Description', book.dc_metadata.description)
+                item('Subject', book.dc_metadata.subject)
+            with tag('h2'):
+                text('Pages')
             with tag('table', style='pages'):
                 with tag('tr', klass='headings'):
                     with tag('th'): text('page number')
