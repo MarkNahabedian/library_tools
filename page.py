@@ -173,11 +173,9 @@ class Page (object):
         img1 = self.image    # self.load_image().convert('1')
         mask = Image.new('1', img1.size, color=0)     # Image.frombytes or Image.frombuffer ?
         mpx = mask.load()
-        print(img1.size, mask.size, mpx)
         obj = self.get_ocr_object_element()
         for p in obj.iter('PARAGRAPH'):
             rangeX, rangeY = paragraph_bounds(p)
-            print(rangeX, rangeY)
             for y in rangeY:
                 for x in rangeX:
                     mpx[x, y] = 1
