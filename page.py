@@ -20,7 +20,7 @@ class Book (object):
             self.directory = directory
         self.directory = os.path.abspath(self.directory)
         self.name_token = os.path.basename(self.directory)
-        self.dc_metadata = DoublinCoreMetadata(self)
+        self.dc_metadata = DublinCoreMetadata(self)
         self.pages = []
         jp2dir = self.jp2_directory()
         for filename in os.listdir(jp2dir):
@@ -85,16 +85,16 @@ class Book (object):
                 page.jp2_height, page.metadata_height))
 
 
-class DoublinCoreMetadata (object):
-    '''DoublinCoreMetadata holds the Doublin Core metadata for a Book.'''
-    DOUBLIN_CORE_NAMESPACE = 'http://purl.org/dc/elements/1.1/'
+class DublinCoreMetadata (object):
+    '''DublinCoreMetadata holds the Dublin Core metadata for a Book.'''
+    DUBLIN_CORE_NAMESPACE = 'http://purl.org/dc/elements/1.1/'
 
     def __init__(self, book):
         tree = ET.parse(os.path.join(book.directory,
                                      book.name_token + '_dc.xml'))
         def elts(tag):
             return tree.findall('.//{%s}%s' % (
-                self.__class__.DOUBLIN_CORE_NAMESPACE, tag))
+                self.__class__.DUBLIN_CORE_NAMESPACE, tag))
         def maybe(elts):
             if len(elts) > 0:
                 return elts[0].text
