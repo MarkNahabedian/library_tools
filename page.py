@@ -25,8 +25,9 @@ class Book (object):
         jp2dir = self.jp2_directory()
         for filename in os.listdir(jp2dir):
             self.pages.append(Page(self, os.path.join(jp2dir, filename)))
-        tree = ET.parse(os.path.join(self.directory,
-                                     self.name_token + '_djvu.xml'))
+        self.djvu_path = os.path.join(self.directory,
+                                      self.name_token + '_djvu.xml')
+        tree = ET.parse(self.djvu_path)
         for obj in tree.iter('OBJECT'):
             pm = PageMetadata(obj)
             if pm.sequence_number == None:
@@ -120,17 +121,17 @@ class Page (object):
         # We call load_image each time we need it because many of the
         # operations we might use (like thumbnail) modify the image in
         # place and we want a 'clean' image each time.
-        image = self.load_image()
-        self.jp2_width, self.jp2_height = image.size
-        self.jp2_width = None
-        self.jp2_height = None
+        self.jp2_width, self.jp2_height = self.image.size
 
     def load_image(self):
         # Since most of the operations on an Image appear to modify it
         # in place, we don't cache the Image but reopen it when we
         # need it.
-        image = Image.open(self.jp2filepath)
-        return image
+        return self.image.load()
+
+    @property
+    def image(self):
+        return Image.open(self.jp2filepath)
 
     @property
     def page_number(self):
@@ -153,6 +154,34 @@ class Page (object):
     def thumbnail_path(self):
         return os.path.join(self.book.thumbnails_dir(),
                             '%04d.jpg' % self.sequence_number)
+
+    def get_ocr_object_element(self):
+        if not self.metadata:
+            return None
+        key = self.metadata.page_file
+        tree = ET.parse(self.book.djvu_path)
+        # tree.find('''.//OBJECT[PARAM/@value='%s']''' % key)
+        # doesn't work.
+        for o in tree.iter('OBJECT'):
+            for p in o.iter('PARAM'):
+                if (p.attrib['name'] == "PAGE" and
+                    p.attrib['value'] == key):
+                    return o
+        return None
+
+    def text_mask(self):
+        img1 = self.image    # self.load_image().convert('1')
+        mask = Image.new('1', img1.size, color=0)     # Image.frombytes or Image.frombuffer ?
+        mpx = mask.load()
+        print(img1.size, mask.size, mpx)
+        obj = self.get_ocr_object_element()
+        for p in obj.iter('PARAGRAPH'):
+            rangeX, rangeY = paragraph_bounds(p)
+            print(rangeX, rangeY)
+            for y in rangeY:
+                for x in rangeX:
+                    mpx[x, y] = 1
+        return mask
 
 
 class PageMetadata (object):
@@ -205,4 +234,34 @@ def infer_page_number(object_elt):
     if len(lines) == 0:
         return None
     return try_line(lines[0]) or try_line(lines[-1])
+
+
+def paragraph_bounds(paragraph):
+    '''paragraph_bounds returns the bounding box of the OCRed PARAGRAPH
+    element as a range of X coordinates and a range of Y coordinates.
+    '''
+    def min(a, b):
+        if a == None:
+            return b
+        if a < b:
+            return a
+        return b
+    def max(a, b):
+        if a == None:
+            return b
+        if a > b:
+            return a
+        return b
+    minX = None
+    minY = None
+    maxX = None
+    maxY = None
+    for w in paragraph.iter('WORD'):
+        left, bottom, right, top, baseline_right =  tuple(
+            [int(i) for i in w.attrib['coords'].split(',')])
+        minX = min(minX, left)
+        minY = min(minY, top)
+        maxX = max(maxX, right)
+        maxY = max(maxY, max(bottom, baseline_right))
+    return range(minX, maxX + 1), range(minY, maxY + 1)
 
