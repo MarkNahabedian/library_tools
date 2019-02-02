@@ -120,13 +120,20 @@ class Page (object):
         self.sequence_number = None
         if m:
             self.sequence_number = int(m.group('seq'))
-        self.image = None
+        # Pillow lazily loads images so it's cheap to open them now.
+        # We call load_image each time we need it because many of the
+        # operations we might use (like thumbnail) modify the image in
+        # place and we want a 'clean' image each time.
+        image = self.load_image()
+        self.jp2_width, self.jp2_height = image.size
         self.jp2_width = None
         self.jp2_height = None
 
     def load_image(self):
+        # Since most of the operations on an Image appear to modify it
+        # in place, we don't cache the Image but reopen it when we
+        # need it.
         image = Image.open(self.jp2filepath)
-        self.jp2_width, self.jp2_height = image.size
         return image
 
     @property
