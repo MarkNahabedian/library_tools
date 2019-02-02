@@ -1,5 +1,6 @@
 #!python3
 
+import math
 import os
 import os.path
 import re
@@ -171,14 +172,14 @@ class Page (object):
 
     def text_mask(self):
         img1 = self.image    # self.load_image().convert('1')
-        mask = Image.new('1', img1.size, color=0)     # Image.frombytes or Image.frombuffer ?
+        mask = Image.new('1', img1.size, color=1)
         mpx = mask.load()
         obj = self.get_ocr_object_element()
         for p in obj.iter('PARAGRAPH'):
-            rangeX, rangeY = paragraph_bounds(p)
+            rangeX, rangeY = paragraph_bounds(p, mask.size)
             for y in rangeY:
                 for x in rangeX:
-                    mpx[x, y] = 1
+                    mpx[x, y] = 0
         return mask
 
 
@@ -217,8 +218,8 @@ def extract_sequence_number(regexp, filepath):
 
 # We could interpolate page numbers for those pages where we don't find one.
 def infer_page_number(object_elt):
-    '''infer_page_number attempts to infer the page number (ad printed on the page) from the page's OCR data.
-    It is not clever.'''
+    '''infer_page_number attempts to infer the page number (ad printed
+    on the page) from the page's OCR data. It is not clever.'''
     # We look for a WORD that can be parsed as an int in the first or
     # last OCRed line of the page.
     def try_line(line):
@@ -234,7 +235,7 @@ def infer_page_number(object_elt):
     return try_line(lines[0]) or try_line(lines[-1])
 
 
-def paragraph_bounds(paragraph):
+def paragraph_bounds(paragraph, size):
     '''paragraph_bounds returns the bounding box of the OCRed PARAGRAPH
     element as a range of X coordinates and a range of Y coordinates.
     '''
@@ -254,12 +255,20 @@ def paragraph_bounds(paragraph):
     minY = None
     maxX = None
     maxY = None
-    for w in paragraph.iter('WORD'):
-        left, bottom, right, top, baseline_right =  tuple(
-            [int(i) for i in w.attrib['coords'].split(',')])
-        minX = min(minX, left)
-        minY = min(minY, top)
-        maxX = max(maxX, right)
-        maxY = max(maxY, max(bottom, baseline_right))
-    return range(minX, maxX + 1), range(minY, maxY + 1)
+    lines = 0
+    for line in paragraph.iter('LINE'):
+        lines += 1
+        for w in line.iter('WORD'):
+            left, bottom, right, top, baseline_right =  tuple(
+                [int(i) for i in w.attrib['coords'].split(',')])
+            minX = min(minX, left)
+            minY = min(minY, top)
+            maxX = max(maxX, right)
+            maxY = max(maxY, bottom)
+    line_height = (maxY - minY) / lines
+    # Pad the top and bottom of the paragraph
+    ypad = int(math.ceil(line_height * 1))
+    return (range(minX, maxX + 1),
+            range(max(0, minY - ypad),
+                  min(size[1], maxY + ypad + 1)))
 
