@@ -71,10 +71,6 @@ class Book (object):
             img.thumbnail((128, 128))
             img.save(page.thumbnail_path(), 'JPEG')
 
-    def cache_jp2_page_sizes(self):
-        for page in self.pages:
-            page.load_image()
-
     def list_pages(self):
         print('Book:  %s' % self.name_token)
         for page in self.pages:
