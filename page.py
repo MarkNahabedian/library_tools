@@ -4,7 +4,7 @@ import os
 import os.path
 import re
 import xml.etree.ElementTree as ET
-from PIL import Image
+from PIL import Image     # pip install Pillow
 
 
 class Book (object):

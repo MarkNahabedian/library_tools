@@ -31,6 +31,8 @@ It also requires the yattag package:
 
 <pre>
 pip install yattag
+
+pip install Pillow
 </pre>
 
 
