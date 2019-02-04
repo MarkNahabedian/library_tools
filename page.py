@@ -170,17 +170,42 @@ class Page (object):
                     return o
         return None
 
-    def text_mask(self):
-        img1 = self.image    # self.load_image().convert('1')
-        mask = Image.new('1', img1.size, color=1)
-        mpx = mask.load()
+    def graphics_only(self):
+        img = self.image
+        background = self.sample_background()
+        whiten(img, background[0][0], background[1][0], background[2][0])
         obj = self.get_ocr_object_element()
         for p in obj.iter('PARAGRAPH'):
-            rangeX, rangeY = paragraph_bounds(p, mask.size)
+            rangeX, rangeY = paragraph_bounds(p, img.size)
             for y in rangeY:
                 for x in rangeX:
-                    mpx[x, y] = 0
-        return mask
+                    img.putpixel((x, y), (0xff, 0xff, 0xff))
+        return img
+
+    def sample_background(self):
+        # Sample 1/4 inch from each corner.
+        s = int(round(self.metadata.dpi * 0.25))
+        left = range(0, s)
+        top = range(0, s)
+        right = range(self.jp2_width - s, self.jp2_width)
+        bottom = range(self.jp2_height - s, self.jp2_height)
+        minR, maxR = 255, 0
+        minG, maxG = 255, 0
+        minB, maxB = 255, 0
+        def min(a, b): return a if a < b else b
+        def max(a, b): return b if a < b else a
+        image = self.image
+        for rng in ((left, top), (right, top), (left, bottom), (right, bottom)):
+            for y in rng[1]:
+                for x in rng[0]:
+                    r, g, b = image.getpixel((x, y))
+                    minR = min(minR, r)
+                    maxR = max(maxR, r)
+                    minG = min(minG, g)
+                    maxG = max(maxG, g)
+                    minB = min(minB, b)
+                    maxB = max(maxB, b)
+        return (minR, maxR), (minG, maxG), (minB, maxB)
 
 
 class PageMetadata (object):
@@ -267,8 +292,23 @@ def paragraph_bounds(paragraph, size):
             maxY = max(maxY, bottom)
     line_height = (maxY - minY) / lines
     # Pad the top and bottom of the paragraph
-    ypad = int(math.ceil(line_height * 1))
+    ypad = 0   # int(math.ceil(line_height * 1))
     return (range(minX, maxX + 1),
             range(max(0, minY - ypad),
                   min(size[1], maxY + ypad + 1)))
+
+
+def whiten(image, rThreshold, gThreshold, bThreshold):
+    assert image.mode == 'RGB'
+    total = 0
+    changed = 0
+    for y in range(image.size[1]):
+        for x in range(image.size[0]):
+            total += 1
+            r, g, b = image.getpixel((x, y))
+            if (r >= rThreshold) and (g >= gThreshold) and (b >= bThreshold):
+                changed += 1
+                image.putpixel((x, y), (0xff, 0xff, 0xff))
+
+
 
