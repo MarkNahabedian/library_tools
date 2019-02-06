@@ -5,6 +5,8 @@ import os
 import os.path
 import re
 import xml.etree.ElementTree as ET
+import operator
+from functools import reduce
 from PIL import Image     # pip install Pillow
 
 
@@ -186,18 +188,16 @@ class Page (object):
         # Sample 1/4 inch from each corner.
         s = int(round(self.metadata.dpi * 0.25))
         left = range(0, s)
-        top = range(0, s)
         right = range(self.jp2_width - s, self.jp2_width)
-        bottom = range(self.jp2_height - s, self.jp2_height)
-        minR, maxR = 255, 0
-        minG, maxG = 255, 0
-        minB, maxB = 255, 0
+        image = self.image
         def min(a, b): return a if a < b else b
         def max(a, b): return b if a < b else a
-        image = self.image
-        for rng in ((left, top), (right, top), (left, bottom), (right, bottom)):
-            for y in rng[1]:
-                for x in rng[0]:
+        def edge_rgb_ranges(x_range):
+            minR, maxR = 255, 0
+            minG, maxG = 255, 0
+            minB, maxB = 255, 0
+            for y in range(image.size[1]):
+                for x in x_range:
                     r, g, b = image.getpixel((x, y))
                     minR = min(minR, r)
                     maxR = max(maxR, r)
@@ -205,7 +205,13 @@ class Page (object):
                     maxG = max(maxG, g)
                     minB = min(minB, b)
                     maxB = max(maxB, b)
-        return (minR, maxR), (minG, maxG), (minB, maxB)
+            return ((minR, maxR), (minG, maxG), (minB, maxB))
+        # White is #xFF.  Greater is lighter.
+        def lightness(rgb_ranges):
+            return reduce(operator.add, [m * m for m in [ r[0] for r in rgb_ranges]])
+        left_rgb = edge_rgb_ranges(left)
+        right_rgb = edge_rgb_ranges(right)
+        return left_rgb if lightness(left_rgb) > lightness(right_rgb) else right_rgb
 
 
 class PageMetadata (object):
@@ -298,8 +304,6 @@ def paragraph_bounds(paragraph, size):
                   min(size[1], maxY + ypad + 1)))
 
 
-# Sadly, whiten looses us part of the image.  Due to shadow, the
-# gutter border is dark enough to loose us some of the image.
 def whiten(image, rThreshold, gThreshold, bThreshold):
     assert image.mode == 'RGB'
     total = 0
