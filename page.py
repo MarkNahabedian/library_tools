@@ -298,6 +298,8 @@ def paragraph_bounds(paragraph, size):
                   min(size[1], maxY + ypad + 1)))
 
 
+# Sadly, whiten looses us part of the image.  Due to shadow, the
+# gutter border is dark enough to loose us some of the image.
 def whiten(image, rThreshold, gThreshold, bThreshold):
     assert image.mode == 'RGB'
     total = 0
