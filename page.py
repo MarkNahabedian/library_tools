@@ -172,6 +172,18 @@ class Page (object):
                     return o
         return None
 
+    def page_margins(self):
+        e = self.get_ocr_object_element()
+        if e == None:
+            return None, None, None, None
+        minX, maxX, minY, maxY = text_bounds(
+            e, self.jp2_width, self.jp2_height)
+        left = minX
+        top = minY
+        right = self.jp2_width - maxX
+        bottom = self.jp2_height - maxY
+        return left, right, top, bottom
+
     def graphics_only(self):
         img = self.image
         background = self.sample_background()
@@ -266,42 +278,32 @@ def infer_page_number(object_elt):
     return try_line(lines[0]) or try_line(lines[-1])
 
 
+def text_bounds(element, page_width, page_height):
+    '''text_bounds returns the bounding box computed from the coord
+    attributes of all descendents of element.
+    page_width and page_height are used to initialize the bounding box.
+    '''
+    minX = page_width
+    minY = page_height
+    maxX = 0
+    maxY = 0
+    for elt in element.findall('.//*[@coords]'):
+        left, bottom, right, top, baseline_right =  tuple(
+            [int(i) for i in elt.attrib['coords'].split(',')])
+        if left < minX: minX = left
+        if right > maxX: maxX = right
+        if top < minY: minY = top
+        if bottom > maxY: maxY = bottom
+    return minX, maxX, minY, maxY
+
+
 def paragraph_bounds(paragraph, size):
     '''paragraph_bounds returns the bounding box of the OCRed PARAGRAPH
     element as a range of X coordinates and a range of Y coordinates.
     '''
-    def min(a, b):
-        if a == None:
-            return b
-        if a < b:
-            return a
-        return b
-    def max(a, b):
-        if a == None:
-            return b
-        if a > b:
-            return a
-        return b
-    minX = None
-    minY = None
-    maxX = None
-    maxY = None
-    lines = 0
-    for line in paragraph.iter('LINE'):
-        lines += 1
-        for w in line.iter('WORD'):
-            left, bottom, right, top, baseline_right =  tuple(
-                [int(i) for i in w.attrib['coords'].split(',')])
-            minX = min(minX, left)
-            minY = min(minY, top)
-            maxX = max(maxX, right)
-            maxY = max(maxY, bottom)
-    line_height = (maxY - minY) / lines
-    # Pad the top and bottom of the paragraph
-    ypad = 0   # int(math.ceil(line_height * 1))
+    minX, maxX, minY, maxY = text_bounds(paragraph, size[0], size[1])
     return (range(minX, maxX + 1),
-            range(max(0, minY - ypad),
-                  min(size[1], maxY + ypad + 1)))
+            range(minY, maxY + 1))
 
 
 def whiten(image, rThreshold, gThreshold, bThreshold):

@@ -17,6 +17,10 @@ body	{
 	padding: 3em;
 	text-align: right;
 	}
+.margins {
+	padding: 3em;
+	text-align: left;
+	}
 .line_count {
 	padding: 3em;
 	text-align: right;
@@ -60,8 +64,8 @@ def write_html(book):
                 with tag('tr', klass='headings'):
                     with tag('th'): text('page number')
                     with tag('th'): text('thumbnail')
-                    with tag('th'): text('width')
-                    with tag('th'): text('width')
+                    with tag('th'): text('page dimensions')
+                    with tag('th'): text('margins')
                     with tag('th'): text('number of lines')
                 for page in book.pages:
                     with tag('tr', klass='page'):
@@ -74,15 +78,26 @@ def write_html(book):
                             with tag('img', src=os.path.relpath(page.thumbnail_path(), book.directory)):
                                 pass
                         with tag('td', klass='dimension'):
-                            text('%dw' % page.jp2_width)
-                            if page.metadata and page.metadata.image_width:
+                            text('jp2 width: %d' % page.jp2_width)
+                            with tag('br'): pass
+                            text('jp2 height: %d' % page.jp2_height)
+                            if page.metadata:
+                                if page.metadata.image_width:
+                                    with tag('br'): pass
+                                    text('OCR width: %d' % page.metadata.image_width)
+                                if page.metadata.image_height:
+                                    with tag('br'): pass
+                                    text('OCR height: %d' % page.metadata.image_height)
+                        with tag('td', klass='margins'):
+                            left, right, top, bottom = page.page_margins()
+                            if left != None:
+                                text('left: %d' % left)
                                 with tag('br'): pass
-                                text('%d' % page.metadata.image_width)
-                        with tag('td', klass='dimension'):
-                            text('%dw' % page.jp2_height)
-                            if page.metadata and page.metadata.image_height:
+                                text('right: %d' % right)
                                 with tag('br'): pass
-                                text('%d' % page.metadata.image_height)
+                                text('top: %d' % top)
+                                with tag('br'): pass
+                                text('bottom: %d' % bottom)
                         with tag('td', klass='line-count'):
                             if page.metadata:
                                 text('%d' % page.metadata.line_count)
