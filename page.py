@@ -21,7 +21,7 @@ class Region (object):
 
     @property
     def width(self):
-        return right = left
+        return right - left
 
     @property
     def height(self):
@@ -213,25 +213,13 @@ class Page (object):
                     return o
         return None        
 
-    def page_margins(self):
-        '''page_margins uses OCRed text dimensions to infer the left, right,
-        top and bottom margins of the page.'''
-        e = self.get_ocr_object_element()
-        if e == None:
-            return None, None, None, None
-        minX, maxX, minY, maxY = text_bounds(
-            e, self.jp2_width, self.jp2_height)
-        left = minX
-        top = minY
-        right = self.jp2_width - maxX
-        bottom = self.jp2_height - maxY
-        return left, right, top, bottom
-
     def text_region(self):
         '''text_region returns a Region that surrounds all of the OCRed text
         on the page.'''
-        left, right, top, bottom = self.page_margins()
-        return self.jp2_region.inset(left, right, top, bottom)
+        obj = self.get_ocr_object_element()
+        if obj == None:
+            return None
+        return text_bounds(obj, self.jp2_region)
 
     def graphics_only(self):
         """graphics_only retuurns an image of the page with the background
@@ -242,9 +230,9 @@ class Page (object):
         whiten(img, background[0][0], background[1][0], background[2][0])
         obj = self.get_ocr_object_element()
         for p in obj.iter('PARAGRAPH'):
-            rangeX, rangeY = paragraph_bounds(p, img.size)
-            for y in rangeY:
-                for x in rangeX:
+            r = text_bounds(p, self.jp2_margins)
+            for y in r.rangeY:
+                for x in r.rangeX:
                     img.putpixel((x, y), (0xff, 0xff, 0xff))
         return img
 
@@ -332,15 +320,14 @@ def infer_page_number(object_elt):
     return try_line(lines[0]) or try_line(lines[-1])
 
 
-def text_bounds(element, page_width, page_height):
+def text_bounds(element, whole):
     '''text_bounds returns the bounding box computed from the coord
-    attributes of all descendents of element.
-    page_width and page_height are used to initialize the bounding box.
-    '''
-    minX = page_width
-    minY = page_height
-    maxX = 0
-    maxY = 0
+    attributes of all descendents of element as a Region.
+    whole is a region encompassing the entire page.'''
+    minX = whole.right
+    maxX = whole.left
+    minY = whole.bottom
+    maxY = whole.top
     for elt in element.findall('.//*[@coords]'):
         left, bottom, right, top, baseline_right =  tuple(
             [int(i) for i in elt.attrib['coords'].split(',')])
@@ -348,16 +335,7 @@ def text_bounds(element, page_width, page_height):
         if right > maxX: maxX = right
         if top < minY: minY = top
         if bottom > maxY: maxY = bottom
-    return minX, maxX, minY, maxY
-
-
-def paragraph_bounds(paragraph, size):
-    '''paragraph_bounds returns the bounding box of the OCRed PARAGRAPH
-    element as a range of X coordinates and a range of Y coordinates.
-    '''
-    minX, maxX, minY, maxY = text_bounds(paragraph, size[0], size[1])
-    return (range(minX, maxX + 1),
-            range(minY, maxY + 1))
+    return Region(minX, maxX, minY, maxY)
 
 
 def whiten(image, rThreshold, gThreshold, bThreshold):

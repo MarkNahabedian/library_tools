@@ -89,15 +89,16 @@ def write_html(book):
                                     with tag('br'): pass
                                     text('OCR height: %d' % page.metadata.image_height)
                         with tag('td', klass='margins'):
-                            left, right, top, bottom = page.page_margins()
-                            if left != None:
-                                text('left: %d' % left)
+                            whole = page.jp2_region
+                            txt = page.text_region()
+                            if txt != None:
+                                text('left: %d' % (txt.left - whole.left))
                                 with tag('br'): pass
-                                text('right: %d' % right)
+                                text('right: %d' % (whole.right - txt.right))
                                 with tag('br'): pass
-                                text('top: %d' % top)
+                                text('top: %d' % (txt.top - whole.top))
                                 with tag('br'): pass
-                                text('bottom: %d' % bottom)
+                                text('bottom: %d' % (whole.bottom - txt.bottom))
                         with tag('td', klass='line-count'):
                             if page.metadata:
                                 text('%d' % page.metadata.line_count)
