@@ -10,6 +10,41 @@ from functools import reduce
 from PIL import Image     # pip install Pillow
 
 
+class Region (object):
+    '''Region is used to describe any rectilinear area of a page.'''
+
+    def __init__(self, left, right, top, bottom):
+        self.left = left
+        self.right = right
+        self.top = top
+        self.bottom = bottom
+
+    @property
+    def width(self):
+        return right = left
+
+    @property
+    def height(self):
+        return bottom - top
+
+    @property
+    def area(self):
+        return self.width * self.height
+
+    @property
+    def rangeX(self):
+        return range(left, right)
+
+    @property
+    def rangeY(self):
+        return range(top, bottom)
+
+    def inset(self, left, right, top, bottom):
+        '''inset returns a new Region inset from self by the specified amount at each edge.'''
+        return Region(self.left + left, self.right - right,
+                      self.top + top, self.bottom - bottom)
+
+
 class Book (object):
     '''Book represents a scanned book that was fetched using fetch_pages.py.*'''
 
@@ -133,6 +168,10 @@ class Page (object):
         return self.image.load()
 
     @property
+    def jp2_region(self):
+        return Region(0, self.jp2_width, 0, self.jp2_height)
+
+    @property
     def image(self):
         return Image.open(self.jp2filepath)
 
@@ -172,10 +211,10 @@ class Page (object):
                 if (p.attrib['name'] == "PAGE" and
                     p.attrib['value'] == key):
                     return o
-        return None
+        return None        
 
     def page_margins(self):
-        '''page_margins uses OCRed text dimensions to in fer the left, right,
+        '''page_margins uses OCRed text dimensions to infer the left, right,
         top and bottom margins of the page.'''
         e = self.get_ocr_object_element()
         if e == None:
@@ -187,6 +226,12 @@ class Page (object):
         right = self.jp2_width - maxX
         bottom = self.jp2_height - maxY
         return left, right, top, bottom
+
+    def text_region(self):
+        '''text_region returns a Region that surrounds all of the OCRed text
+        on the page.'''
+        left, right, top, bottom = self.page_margins()
+        return self.jp2_region.inset(left, right, top, bottom)
 
     def graphics_only(self):
         """graphics_only retuurns an image of the page with the background
