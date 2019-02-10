@@ -159,6 +159,8 @@ class Page (object):
                             '%04d.jpg' % self.sequence_number)
 
     def get_ocr_object_element(self):
+        '''get_ocr_object_element looks for and returns the page's OBJECT
+        element from the book's djvu.xml document. '''
         if not self.metadata:
             return None
         key = self.metadata.page_file
@@ -173,6 +175,8 @@ class Page (object):
         return None
 
     def page_margins(self):
+        '''page_margins uses OCRed text dimensions to in fer the left, right,
+        top and bottom margins of the page.'''
         e = self.get_ocr_object_element()
         if e == None:
             return None, None, None, None
@@ -185,6 +189,9 @@ class Page (object):
         return left, right, top, bottom
 
     def graphics_only(self):
+        """graphics_only retuurns an image of the page with the background
+        changed to white and Whiten the page image and any OCRed text
+        erased."""
         img = self.image
         background = self.sample_background()
         whiten(img, background[0][0], background[1][0], background[2][0])
@@ -197,7 +204,9 @@ class Page (object):
         return img
 
     def sample_background(self):
-        # Sample 1/4 inch from each corner.
+        # The page gutter can be too dark to give a good sample, so we
+        # lookat the right 1/4 inch and left 1/4 inch from each edge
+        # and use the background color of the lighter.
         s = int(round(self.metadata.dpi * 0.25))
         left = range(0, s)
         right = range(self.jp2_width - s, self.jp2_width)
