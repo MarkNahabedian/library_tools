@@ -49,9 +49,8 @@ def write_html(book):
                             text(value or '')
                         else:
                             for i in range(len(value)):
-                                if i > 0:
-                                    with tag('br'): pass
-                                text(value[i])
+                                with tag('div'):
+                                    text(value[i])
                 item('Title', book.dc_metadata.title)
                 item('Contributor', book.dc_metadata.contributor)
                 item('Publisher', book.dc_metadata.publisher)
@@ -67,41 +66,53 @@ def write_html(book):
                     with tag('th'): text('page dimensions')
                     with tag('th'): text('margins')
                     with tag('th'): text('number of lines')
+                    with tag('th'): text('image regions')
+                    with tag('th'): text('hilited images')
                 for page in book.pages:
                     with tag('tr', klass='page'):
                         with tag('td', klass='pagenumber'):
-                            text('%04d' % page.sequence_number)
+                            with tag('div'):
+                                text('%04d' % page.sequence_number)
                             if page.page_number:
-                                with tag('br'): pass
-                                text('%d' % page.page_number)
+                                with tag('dif'):
+                                    text('%d' % page.page_number)
                         with tag('td', klass='thumbnail'):
                             with tag('img', src=os.path.relpath(page.thumbnail_path(), book.directory)):
                                 pass
                         with tag('td', klass='dimension'):
-                            text('jp2 width: %d' % page.jp2_width)
-                            with tag('br'): pass
-                            text('jp2 height: %d' % page.jp2_height)
+                            with tag('div'):
+                                text('jp2 width: %d' % page.jp2_width)
+                            with tag('div'):
+                                text('jp2 height: %d' % page.jp2_height)
                             if page.metadata:
                                 if page.metadata.image_width:
-                                    with tag('br'): pass
-                                    text('OCR width: %d' % page.metadata.image_width)
+                                    with tag('div'):
+                                        text('OCR width: %d' % page.metadata.image_width)
                                 if page.metadata.image_height:
-                                    with tag('br'): pass
-                                    text('OCR height: %d' % page.metadata.image_height)
+                                    with tag('div'):
+                                        text('OCR height: %d' % page.metadata.image_height)
                         with tag('td', klass='margins'):
                             whole = page.jp2_region
                             txt = page.text_region()
                             if txt != None:
-                                text('left: %d' % (txt.left - whole.left))
-                                with tag('br'): pass
-                                text('right: %d' % (whole.right - txt.right))
-                                with tag('br'): pass
-                                text('top: %d' % (txt.top - whole.top))
-                                with tag('br'): pass
-                                text('bottom: %d' % (whole.bottom - txt.bottom))
+                                with tag('div'):
+                                    text('left: %d' % (txt.left - whole.left))
+                                with tag('div'):
+                                    text('right: %d' % (whole.right - txt.right))
+                                with tag('div'):
+                                    text('top: %d' % (txt.top - whole.top))
+                                with tag('div'):
+                                    text('bottom: %d' % (whole.bottom - txt.bottom))
                         with tag('td', klass='line-count'):
                             if page.metadata:
                                 text('%d' % page.metadata.line_count)
+                        with tag('td'):
+                            for r in page.image_regions():
+                                with tag('div'):
+                                     text(repr(r))
+                        with tag('td', klass='thumbnail'):
+                            with tag('img', src=os.path.relpath(page.thumbnail_path('hli'), book.directory)):
+                                pass
         with open(os.path.join(book.directory, 'pages.html'), 'w') as out:
             out.write(doc.getvalue())
 

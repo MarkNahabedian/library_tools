@@ -21,11 +21,11 @@ class Region (object):
 
     @property
     def width(self):
-        return right - left
+        return self.right - self.left
 
     @property
     def height(self):
-        return bottom - top
+        return self.bottom - self.top
 
     @property
     def area(self):
@@ -33,16 +33,20 @@ class Region (object):
 
     @property
     def rangeX(self):
-        return range(left, right)
+        return range(self.left, self.right)
 
     @property
     def rangeY(self):
-        return range(top, bottom)
+        return range(self.top, self.bottom)
 
     def inset(self, left, right, top, bottom):
         '''inset returns a new Region inset from self by the specified amount at each edge.'''
         return Region(self.left + left, self.right - right,
                       self.top + top, self.bottom - bottom)
+
+    def __repr__(self):
+        return('page.Region(%d, %d, %d, %d)' % (
+            self.left, self.right, self.top, self.bottom))
 
 
 class Book (object):
@@ -109,6 +113,19 @@ class Book (object):
             img = page.load_image()
             img.thumbnail((128, 128))
             img.save(page.thumbnail_path(), 'JPEG')
+
+    def make_image_highlite_thumbnails(self):
+        td = self.thumbnails_dir()
+        try:
+            os.mkdir(td)
+        except OSError:
+            pass
+        for page in self.pages:
+            img = page.image
+            for r in page.image_regions():
+                hilite_region(img, r)
+            img.thumbnail((128, 128))
+            img.save(page.thumbnail_path('hli'), 'JPEG')        
 
     def list_pages(self):
         print('Book:  %s' % self.name_token)
@@ -193,9 +210,9 @@ class Page (object):
             return self.metadata.image_height
         return None
 
-    def thumbnail_path(self):
+    def thumbnail_path(self, tag=''):
         return os.path.join(self.book.thumbnails_dir(),
-                            '%04d.jpg' % self.sequence_number)
+                            '%04d%s.jpg' % (self.sequence_number, tag))
 
     def get_ocr_object_element(self):
         '''get_ocr_object_element looks for and returns the page's OBJECT
@@ -220,6 +237,34 @@ class Page (object):
         if obj == None:
             return None
         return text_bounds(obj, self.jp2_region)
+
+    def image_regions(self):
+        '''image_areas looks for areas of the page that are not text or margin
+        that might be big enough to fit an image.'''
+        all = self.jp2_region
+        if self.metadata:
+            s = int(round(self.metadata.dpi * 0.25))
+            all = all.inset(s, s, s, s)
+        enough_width = (all.right - all.left) / 4
+        enough_height = (all.bottom - all.top) / 10
+        candidates = []
+        vstart = all.top
+        obj = self.get_ocr_object_element()
+        if not obj:
+            return [all]
+        for p in obj.iter('PARAGRAPH'):
+            r = text_bounds(p, all)
+            if r.top - vstart >= enough_height:
+                candidates.append(Region(all.left, all.right, vstart, r.top))
+            if r.height >= enough_height:
+                if (r.left - all.left) >= enough_width:
+                    candidates.append(Region(all.left, r.left - 1, r.top, r.bottom))
+                if (all.right - r.right) >= enough_width:
+                    candidates.append(Region(r.right + 1, all.right, r.top, r.bottom))
+            vstart = r.bottom + 1
+        if (all.bottom - vstart) >= enough_height:
+            candidates.append(Region(all.left, all.right, vstart, all.bottom))
+        return candidates
 
     def graphics_only(self):
         """graphics_only retuurns an image of the page with the background
@@ -351,4 +396,29 @@ def whiten(image, rThreshold, gThreshold, bThreshold):
                 image.putpixel((x, y), (0xff, 0xff, 0xff))
 
 
+def outline_region(image, region):
+    assert image.mode == 'RGB'
+    for x in region.rangeX:
+        image.putpixel((x, region.top), (0, 0, 0xff))
+        image.putpixel((x, region.bottom), (0, 0, 0xff))
+    for y in region.rangeY:
+        image.putpixel((region.left, y), (0, 0, 0xff))
+        image.putpixel((region.right, y), (0, 0, 0xff))
+
+
+def hilite_region(image, region):
+    assert image.mode == 'RGB'
+    rThreshold = 0xff
+    gThreshold = 0xff
+    bThreshold = 0xff
+    for x in region.rangeX:
+        r, g, b = image.getpixel((x, region.top))
+        if r < rThreshold: rThreshold = r
+        if g < gThreshold: gThreshold = g
+        if b < bThreshold: bThreshold = b
+    for y in region.rangeY:
+        for x in region.rangeX:
+            r, g, b = image.getpixel((x, y))
+            if (r > rThreshold) and (g > gThreshold) and (b > bThreshold):
+                image.putpixel((x, y), (0xff, 0xff, 0xff))
 
