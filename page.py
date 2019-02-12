@@ -48,6 +48,16 @@ class Region (object):
         return('page.Region(%d, %d, %d, %d)' % (
             self.left, self.right, self.top, self.bottom))
 
+    def overlapsX(self, other):
+        return ranges_overlap(self.rangeX, other.rangeX)
+
+    def overlapsY(self, other):
+        return ranges_overlap(self.rangeY, other.rangeY)
+
+
+def ranges_overlap(range1, range2):
+    return (max(range1[0], range2[0]) <= min(range1[-1], range2[-1])
+
 
 class Book (object):
     '''Book represents a scanned book that was fetched using fetch_pages.py.*'''
