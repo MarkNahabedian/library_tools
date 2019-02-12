@@ -275,7 +275,7 @@ class Page (object):
         whiten(img, background[0][0], background[1][0], background[2][0])
         obj = self.get_ocr_object_element()
         for p in obj.iter('PARAGRAPH'):
-            r = text_bounds(p, self.jp2_margins)
+            r = text_bounds(p, self.jp2_region)
             for y in r.rangeY:
                 for x in r.rangeX:
                     img.putpixel((x, y), (0xff, 0xff, 0xff))
@@ -289,8 +289,6 @@ class Page (object):
         left = range(0, s)
         right = range(self.jp2_width - s, self.jp2_width)
         image = self.image
-        def min(a, b): return a if a < b else b
-        def max(a, b): return b if a < b else a
         def edge_rgb_ranges(x_range):
             minR, maxR = 255, 0
             minG, maxG = 255, 0
