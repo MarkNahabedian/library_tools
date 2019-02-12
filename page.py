@@ -48,6 +48,14 @@ class Region (object):
         return('page.Region(%d, %d, %d, %d)' % (
             self.left, self.right, self.top, self.bottom))
 
+    def distanceX(self, other):
+        return min(abs(self.right - other.left),
+                   abs(self.left - other.right))
+
+    def distanceY(self, other):
+        return min(abs(self.bottom - other.top),
+                   abs(self.top - other.bottom))
+
     def overlapsX(self, other):
         return ranges_overlap(self.rangeX, other.rangeX)
 
@@ -329,7 +337,7 @@ class PageMetadata (object):
     def __init__(self, object_elt):
         self.image_width = int(object_elt.attrib['width'])
         self.image_height = int(object_elt.attrib['height'])
-        self.line_count = len(object_elt.findall('.//LINE'))
+        self.line_count = count_lines(object_elt)
         self.page_file = None
         self.sequence_number = None
         self.dpi = None
@@ -371,6 +379,11 @@ def infer_page_number(object_elt):
     if len(lines) == 0:
         return None
     return try_line(lines[0]) or try_line(lines[-1])
+
+
+def count_lines(paragraph):
+    '''count_lines returns the number of lines of text in a paragraph.'''
+    return len(paragraph.findall('.//LINE'))
 
 
 def text_bounds(element, whole):
