@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import operator
 from functools import reduce
 from PIL import Image     # pip install Pillow
+import pnq
 
 
 class Region (object):
@@ -101,6 +102,7 @@ class Book (object):
                 p.metadata = pm
             else:
                 raise Exception('No page %d' % pm.sequence)
+        pnq.fix_page_numbers(self)
 
     def __str__(self):
         return '<%s.%s %s>' % (
