@@ -74,7 +74,7 @@ def write_html(book):
                             with tag('div'):
                                 text('%04d' % page.sequence_number)
                             if page.page_number:
-                                with tag('dif'):
+                                with tag('div'):
                                     text('%d' % page.page_number)
                         with tag('td', klass='thumbnail'):
                             with tag('img', src=os.path.relpath(page.thumbnail_path(), book.directory)):
