@@ -64,11 +64,11 @@ class Region (object):
 
 
 def ranges_overlap(range1, range2):
-    return (max(range1[0], range2[0]) <= min(range1[-1], range2[-1])
+    return max(range1[0], range2[0]) <= min(range1[-1], range2[-1])
 
 
 class Book (object):
-    '''Book represents a scanned book that was fetched using fetch_pages.py.*'''
+    '''Book represents a scanned book that was fetched using fetch_pages.py.'''
 
     def __init__(self, directory):
         '''directory is the directory that was created by fetch_pages.py.'''
@@ -82,9 +82,13 @@ class Book (object):
         self.name_token = os.path.basename(self.directory)
         self.dc_metadata = DublinCoreMetadata(self)
         self.pages = []
+        self.max_page_sequence = 0
         jp2dir = self.jp2_directory()
         for filename in os.listdir(jp2dir):
-            self.pages.append(Page(self, os.path.join(jp2dir, filename)))
+            p = Page(self, os.path.join(jp2dir, filename))
+            self.pages.append(p)
+            if p.sequence_number > self.max_page_sequence:
+                self.max_page_sequence = p.sequence_number
         self.djvu_path = os.path.join(self.directory,
                                       self.name_token + '_djvu.xml')
         tree = ET.parse(self.djvu_path)
@@ -97,6 +101,12 @@ class Book (object):
                 p.metadata = pm
             else:
                 raise Exception('No page %d' % pm.sequence)
+
+    def __str__(self):
+        return '<%s.%s %s>' % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            self.name_token)
 
     def page_for_sequence_number(self, sequence):
         '''page_for_sequence_number finds and returns the Page with the specified sequence number.'''
@@ -185,6 +195,7 @@ class Page (object):
         self.book = book
         self.jp2filepath = jp2filepath
         self.metadata = None
+        self.corrected_page_number = None
         # These properties are extracted from the jp2 file:
         m = SEQUENCE_NUMBER_JP2_REGEXP.search(os.path.basename(self.jp2filepath))
         self.sequence_number = None
@@ -195,6 +206,12 @@ class Page (object):
         # operations we might use (like thumbnail) modify the image in
         # place and we want a 'clean' image each time.
         self.jp2_width, self.jp2_height = self.image.size
+
+    def __str__(self):
+        return '<%s.%s %04d>' % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            self.sequence_number)
 
     def load_image(self):
         # Since most of the operations on an Image appear to modify it
@@ -212,9 +229,15 @@ class Page (object):
 
     @property
     def page_number(self):
+        if self.corrected_page_number:
+            return self.corrected_page_number
         if self.metadata:
             return self.metadata.page_number
         return None
+
+    @page_number.setter
+    def page_number(self, pn):
+        self.corrected_page_number = pn
 
     @property
     def metadata_width(self):
