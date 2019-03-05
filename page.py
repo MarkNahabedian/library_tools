@@ -285,9 +285,8 @@ class Page (object):
         return candidates
 
     def graphics_only(self):
-        """graphics_only retuurns an image of the page with the background
-        changed to white and Whiten the page image and any OCRed text
-        erased."""
+        """graphics_only returns an image of the page with the background
+        changed to white and any OCRed text erased."""
         img = self.image
         background = self.sample_background()
         whiten(img, background[0][0], background[1][0], background[2][0])
@@ -364,7 +363,7 @@ def extract_sequence_number(regexp, filepath):
 
 # We could interpolate page numbers for those pages where we don't find one.
 def infer_page_number(object_elt):
-    '''infer_page_number attempts to infer the page number (ad printed
+    '''infer_page_number attempts to infer the page number (as printed
     on the page) from the page's OCR data. It is not clever.'''
     # We look for a WORD that can be parsed as an int in the first or
     # last OCRed line of the page.
