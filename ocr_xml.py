@@ -1,4 +1,4 @@
-# Analyze the XML file containing the OCr data.
+# Analyze the XML file containing the OCR data.
 
 import xml.etree.ElementTree as ET
 
