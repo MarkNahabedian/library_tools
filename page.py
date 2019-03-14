@@ -10,6 +10,7 @@ from functools import reduce
 from PIL import Image     # pip install Pillow
 import pnq
 from region import Region
+from ocr_xml import text_bounds
 
 
 def ranges_overlap(range1, range2):
