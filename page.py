@@ -358,24 +358,6 @@ def count_lines(paragraph):
     return len(paragraph.findall('.//LINE'))
 
 
-def text_bounds(element, whole):
-    '''text_bounds returns the bounding box computed from the coord
-    attributes of all descendents of element as a Region.
-    whole is a region encompassing the entire page.'''
-    minX = whole.right
-    maxX = whole.left
-    minY = whole.bottom
-    maxY = whole.top
-    for elt in element.findall('.//*[@coords]'):
-        left, bottom, right, top, baseline_right =  tuple(
-            [int(i) for i in elt.attrib['coords'].split(',')])
-        if left < minX: minX = left
-        if right > maxX: maxX = right
-        if top < minY: minY = top
-        if bottom > maxY: maxY = bottom
-    return Region(minX, maxX, minY, maxY)
-
-
 def whiten(image, rThreshold, gThreshold, bThreshold):
     assert image.mode == 'RGB'
     total = 0

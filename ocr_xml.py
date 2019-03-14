@@ -1,12 +1,14 @@
 # Analyze the XML file containing the OCR data.
 
 import xml.etree.ElementTree as ET
+from region import Region
 
 
 def get_page_boundaries(filename):
     '''get_page_boundaries determines page boundaries by looking at the
     coordinates of the extracted text from a djvu XML file.'''
     tree = ET.parse(filename)
+    # TODO change to use text_bounds()
     minX = None
     minY = None
     maxX = None
@@ -51,4 +53,22 @@ def page_by_page(filename):
                 dpi = int(param.attrib['value'])
         print("%dw %dh %ddpi %s" % (width, height, dpi, page_file))
     print('%d pages' % count)
+
+
+def text_bounds(element, whole):
+    '''text_bounds returns the bounding box computed from the coord
+    attributes of all descendents of element as a Region.
+    whole is a region encompassing the entire page.'''
+    minX = whole.right
+    maxX = whole.left
+    minY = whole.bottom
+    maxY = whole.top
+    for elt in element.findall('.//*[@coords]'):
+        left, bottom, right, top, baseline_right =  tuple(
+            [int(i) for i in elt.attrib['coords'].split(',')])
+        if left < minX: minX = left
+        if right > maxX: maxX = right
+        if top < minY: minY = top
+        if bottom > maxY: maxY = bottom
+    return Region(minX, maxX, minY, maxY)
 
