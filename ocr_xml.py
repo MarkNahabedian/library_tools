@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 
 def get_page_boundaries(filename):
     '''get_page_boundaries determines page boundaries by looking at the
-    coordinates of the extracted tec=xt from a djvu XML file.'''
+    coordinates of the extracted text from a djvu XML file.'''
     tree = ET.parse(filename)
     minX = None
     minY = None
