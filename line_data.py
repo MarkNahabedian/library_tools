@@ -6,6 +6,10 @@ from ocr_xml import text_bounds
 # HIDDENTEXT > PAGECOLUMN > REGION > PARAGRAPH > LINE > WORD.
 
 class LineData (object):
+    '''LineData encapsulates data associated with a single line of OCRed
+    text.  We hope it can be used to distinguish normal text from page
+    headings, page footers, text within images and other text.'''
+
     def __init__(self, page, hiddentext_pos, pagecolumn_pos,
                  region_pos, paragraph_pos, line_pos, region, text):
         self.page = page
@@ -56,4 +60,12 @@ class LineData (object):
             self.page_sequence_number,
             self.position_string(),
             self.region, self.text))
+
+    def same_paragraph(sef, other):
+        '''same_paragraph returns true if the lines are in the same paragraph.'''
+        return (self.page == other.page and
+                self.hiddentext_pos == other.hiddentext_pos and
+                self.pagecolumn_pos == other.pagecolumn_pos and
+                self.region_pos == other.region_pos and
+                self.paragraph_pos == other.paragraph_pos)
 
