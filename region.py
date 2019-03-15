@@ -51,4 +51,31 @@ class Region (object):
     def overlapsY(self, other):
         return ranges_overlap(self.rangeY, other.rangeY)
 
+    @classmethod
+    def rectangular_hull(cls, regions):
+        '''rectangular_hull returns the smallest Region that contains all of
+        the specified regions.'''
+        minX = None
+        minY = None
+        maxX = None
+        maxY = None
+        def min(a, b):
+            if a == None:
+                return b
+            if a < b:
+                return a
+            return b
+        def max(a, b):
+            if a == None:
+                return b
+            if a > b:
+                return a
+            return b
+        for r in regions:
+            minX = min(minX, r.left)
+            minY = min(minY, r.top)
+            maxX = max(maxX, r.right)
+            maxY = max(maxY, r.bottom)
+        return Region(minX, maxX, minY, maxY)
+
 
