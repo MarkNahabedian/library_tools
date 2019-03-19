@@ -2,8 +2,11 @@
 import operator
 from functools import reduce
 from region import Region
-from page import Page
+# from page import Page
 from ocr_xml import text_bounds
+from flags import *
+from characters import CHARACTER_FLAGS
+
 
 # I think the hierarchy of elements in the djvu.xml file is OBJECT >
 # HIDDENTEXT > PAGECOLUMN > REGION > PARAGRAPH > LINE > WORD.
@@ -26,31 +29,58 @@ class LineData (object):
         self.line_pos = line_pos
         self.region = region
         self.text = text.encode('ascii', 'ignore')
+        self.flags = 0
+        if self.region.width >= 0.7 * self.page.jp2_width:
+            self.flags |= LINE_FULL_WIDTH
+        for c in text:
+            self.flags |= CHARACTER_FLAGS[c]
+   
 
     @classmethod
-    def for_page(cls, page):
-        assert isinstance(page, Page)
+    def for_page(cls, page, page_object=None):
+        # assert isinstance(page, Page)
         parablocks = []
-        page_object = page.get_ocr_object_element()
+        if page_object == None:
+            page_object = page.get_ocr_object_element()
+        first_line = None
+        last_line = None
         for ht_index, ht in enumerate(page_object.findall('HIDDENTEXT')):
             for pc_index, pc in enumerate(ht.findall('PAGECOLUMN')):
                 for region_index, r in enumerate(pc.findall('REGION')):
                     for para_index, para in enumerate(r.findall('PARAGRAPH')):
                         lines = []
                         for line_index, line in enumerate(para.findall('LINE')):
-                            lines.append(LineData(
+                            ld = LineData(
                                 page, ht_index + 1, pc_index + 1,
                                 region_index + 1, para_index + 1,
                                 line_index + 1,
                                 text_bounds(line, page.jp2_region),
                                 ' '.join([w.text for w in line.findall('WORD')])
-                            ))
-                        parablocks.append(ParaBlock.find_type(lines)(lines))
+                            )
+                            if first_line == None:
+                                first_line = ld
+                            last_line = ld
+                            lines.append(ld)
+                        if len(lines) > 0:
+                            lines[0].flags |= PARA_FIRST_LINE
+                            lines[-1].flags |= PARA_LAST_LINE
+                        parablocks.append(ParaBlock(lines))
+        if first_line:
+            first_line.flags |= PAGE_FIRST_LINE
+            last_line.flags |= PAGE_LAST_LINE
         return parablocks
 
     @property
     def page_sequence_number(self):
         return self.page.sequence_number
+
+    @property
+    def length(self):
+        return len(self.text)
+
+    @property
+    def average_char_width(self):
+        return self.region.width / self.length
 
     def position_string(self):
         return ('%d.%d.%d.%d.%d' % (
@@ -61,10 +91,12 @@ class LineData (object):
             self.line_pos))
 
     def __str__(self):
-        return ('<%04d %s %r "%s">' % (
+        return ('<%04d %s %r %s "%s">' % (
             self.page_sequence_number,
             self.position_string(),
-            self.region, self.text))
+            self.region,
+            bit_string(self.flags),
+            self.text))
 
     def same_paragraph(sef, other):
         '''same_paragraph returns true if the lines are in the same paragraph.'''
@@ -107,11 +139,22 @@ class ParaBlock (object):
         for l in self.line_data:
             print(str(l))
 
+    def position_string(self):
+        line = self.line_data[0]
+        return ('%d.%d.%d.%d' % (
+            line.hiddentext_pos,
+            line.pagecolumn_pos,
+            line.region_pos,
+            line.paragraph_pos))
+
     def __str__(self):
-        return('<%s %d lines %r>' % (
+        return('<%s %s, %d lines %r %d %d>' % (
             self.__class__.__name__,
+            self.position_string(),
             len(self.line_data),
-            self.region()))
+            self.region(),
+            average_line_height(self.line_data),
+            average_top_delta(self.line_data)))
 
 
 class PageNumberParaBlock(ParaBlock):
@@ -137,10 +180,6 @@ class BodyTextParaBlock (ParaBlock):
     def test_type(cls, lines):
         if len(lines) <= 1:
             return None
-        average_height = (reduce(operator.add,
-                                 [ line.region.bottom - line.region.top
-                                   for line in lines], 0) /
-                          len(lines))
         line_spacings = [ lines[i + 1].region.top - lines[i].region.top
                           for i in range(len(lines) - 1) ]
         if len(line_spacings) > 0:
@@ -150,4 +189,19 @@ class BodyTextParaBlock (ParaBlock):
                 if abs(s - average_line_spacing) > .05 * average_line_spacing:
                     return None
         return cls
+
+
+def average_top_delta(lines):
+    return (lines[-1].region.top - lines[0].region.top) / len(lines)
+
+
+def average_line_height(lines):
+    l = len(lines)
+    if l == 0:
+        return None
+    return (reduce(operator.add,
+                   [ line.region.bottom - line.region.top
+                     for line in lines], 0) /
+            l)
+
 

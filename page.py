@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import operator
 from functools import reduce
 from PIL import Image     # pip install Pillow
+import line_data
 import pnq
 from region import Region
 from ocr_xml import text_bounds
@@ -49,6 +50,7 @@ class Book (object):
             p = self.page_for_sequence_number(pm.sequence_number)
             if p:
                 p.metadata = pm
+                p.paras = line_data.LineData.for_page(p, obj)
             else:
                 raise Exception('No page %d' % pm.sequence)
         pnq.fix_page_numbers(self)
@@ -146,6 +148,7 @@ class Page (object):
         self.book = book
         self.jp2filepath = jp2filepath
         self.metadata = None
+        self.paras = None
         self.corrected_page_number = None
         # These properties are extracted from the jp2 file:
         m = SEQUENCE_NUMBER_JP2_REGEXP.search(os.path.basename(self.jp2filepath))
@@ -304,8 +307,7 @@ class Page (object):
 
 class PageMetadata (object):
     '''PageMetadata represents the information for a given page that we
-    have extracted from an OBLECT element in a djvu.xml file.
-    '''
+    have extracted from an OBLECT element in a djvu.xml file.'''
     
     def __init__(self, object_elt):
         self.image_width = int(object_elt.attrib['width'])
