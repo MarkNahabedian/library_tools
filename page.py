@@ -225,6 +225,13 @@ class Page (object):
                     return o
         return None        
 
+    def text_coverage(self):
+        '''What fraction of the total page area has text?'''
+        textarea = 0
+        for para in self.paras:
+            textarea += para.region().area
+        return textarea / (self.metadata_width * self.metadata_height)
+
     def text_region(self):
         '''text_region returns a Region that surrounds all of the OCRed text
         on the page.'''

@@ -106,6 +106,8 @@ def write_html(book):
                         with tag('td', klass='line-count'):
                             if page.metadata:
                                 text('%d' % page.metadata.line_count)
+                                doc.stag('br')
+                                text('%f' % page.text_coverage())
                         with tag('td'):
                             for r in page.image_regions():
                                 with tag('div'):
