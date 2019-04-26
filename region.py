@@ -10,10 +10,14 @@ class Region (object):
 
     @property
     def width(self):
+        if self.right == None or self.left == None:
+            return 0
         return self.right - self.left
 
     @property
     def height(self):
+        if self.bottom == None or self.top == None:
+            return 0
         return self.bottom - self.top
 
     @property
