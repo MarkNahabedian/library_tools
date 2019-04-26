@@ -34,7 +34,6 @@ class LineData (object):
             self.flags |= LINE_FULL_WIDTH
         for c in text:
             self.flags |= CHARACTER_FLAGS[c]
-   
 
     @classmethod
     def for_page(cls, page, page_object=None):
