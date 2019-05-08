@@ -80,6 +80,12 @@ def write_html(book):
                             with tag('img', src=os.path.relpath(page.thumbnail_path(), book.directory)):
                                 pass
                         with tag('td', klass='dimension'):
+                            try:
+                                dpi= page.metadata.dpi
+                                with tag('div'):
+                                    text('dpi: %d' % dpi)
+                            except:
+                                pass
                             with tag('div'):
                                 text('jp2 width: %d' % page.jp2_width)
                             with tag('div'):
