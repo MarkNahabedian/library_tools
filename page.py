@@ -12,6 +12,7 @@ import line_data
 import pnq
 from region import Region
 from ocr_xml import text_bounds
+from word_size import WordSizeCollector
 
 
 def ranges_overlap(range1, range2):
@@ -54,6 +55,9 @@ class Book (object):
             else:
                 raise Exception('No page %d' % pm.sequence)
         pnq.fix_page_numbers(self)
+        self.word_size_collector = WordSizeCollector()
+        for word in tree.iter('WORD'):
+            self.word_size_collector.note_word(word)
 
     def __str__(self):
         return '<%s.%s %s>' % (
