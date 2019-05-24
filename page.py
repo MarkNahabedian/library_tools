@@ -18,6 +18,10 @@ from word_size import WordSizeCollector
 def ranges_overlap(range1, range2):
     return max(range1[0], range2[0]) <= min(range1[-1], range2[-1])
 
+ABBYY_SCHEMA = 'http://www.abbyy.com/FineReader_xml/FineReader10-schema-v1.xml'
+
+POINTS_PER_INCH = 72
+
 
 class Book (object):
     '''Book represents a scanned book that was fetched using fetch_pages.py.'''
@@ -43,8 +47,10 @@ class Book (object):
                 self.max_page_sequence = p.sequence_number
         self.djvu_path = os.path.join(self.directory,
                                       self.name_token + '_djvu.xml')
-        tree = ET.parse(self.djvu_path)
-        for obj in tree.iter('OBJECT'):
+        self.abbyy_path = os.path.join(self.directory,
+                                       self.name_token + '_abbyy.xml')
+        djvu_tree = ET.parse(self.djvu_path)
+        for obj in djvu_tree.iter('OBJECT'):
             pm = PageMetadata(obj)
             if pm.sequence_number == None:
                 raise Exception('No sequence number: %r', pm)
@@ -56,9 +62,21 @@ class Book (object):
                 raise Exception('No page %d' % pm.sequence)
         pnq.fix_page_numbers(self)
         self.word_size_collector = WordSizeCollector()
-        for word in tree.iter('WORD'):
+        for word in djvu_tree.iter('WORD'):
             self.word_size_collector.note_word(word)
-
+        abbyy_tree = ET.parse(self.abbyy_path)
+        # There should be a one to one correspondence between page
+        # elements in abbyy_tree and pages of the book.
+        for page, abbyy_page in zip(
+                self.pages,
+                abbyy_tree.iter('{%s}page' % ABBYY_SCHEMA)):
+            for block in abbyy_page.iter('{%s}block' % ABBYY_SCHEMA):
+                if block.attrib.get('blockType') == 'Picture':
+                    def coord(key):
+                        return int(block.attrib[key])
+                    page.picture_regions.append(
+                        Region(coord('l'), coord('r'), coord('t'), coord('b')))
+        
     def __str__(self):
         return '<%s.%s %s>' % (
             self.__class__.__module__,
@@ -153,6 +171,7 @@ class Page (object):
         self.jp2filepath = jp2filepath
         self.metadata = None
         self.paras = None
+        self.picture_regions = []
         self.corrected_page_number = None
         # These properties are extracted from the jp2 file:
         m = SEQUENCE_NUMBER_JP2_REGEXP.search(os.path.basename(self.jp2filepath))
@@ -245,8 +264,8 @@ class Page (object):
         return text_bounds(obj, self.jp2_region)
 
     def image_regions(self):
-        '''image_areas looks for areas of the page that are not text or margin
-        that might be big enough to fit an image.'''
+        '''image_regions looks for areas of the page that are not text or
+        margin that might be big enough to fit an image.'''
         all = self.jp2_region
         if self.metadata:
             s = int(round(self.metadata.dpi * 0.25))

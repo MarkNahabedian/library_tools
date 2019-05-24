@@ -66,7 +66,7 @@ def write_html(book):
                     with tag('th'): text('page dimensions')
                     with tag('th'): text('margins')
                     with tag('th'): text('number of lines')
-                    with tag('th'): text('image regions')
+                    with tag('th'): text('picture regions')
                     with tag('th'): text('hilited images')
                 for page in book.pages:
                     with tag('tr', klass='page'):
@@ -115,7 +115,7 @@ def write_html(book):
                                 doc.stag('br')
                                 text('%f' % page.text_coverage())
                         with tag('td'):
-                            for r in page.image_regions():
+                            for r in page.picture_regions:
                                 with tag('div'):
                                      text(repr(r))
                         with tag('td', klass='thumbnail'):
