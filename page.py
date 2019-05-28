@@ -125,7 +125,7 @@ class Book (object):
             pass
         for page in self.pages:
             img = page.image
-            for r in page.image_regions():
+            for r in page.picture_regions:
                 hilite_region(img, r)
             img.thumbnail((128, 128))
             img.save(page.thumbnail_path('hli'), 'JPEG')        
