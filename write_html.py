@@ -33,7 +33,7 @@ def write_html(book):
         with tag('head'):
             with tag('title'):
                 text(book.name_token)
-            with tag('style', type='text/css'):
+            with tag('style', ('type', 'text/css')):
                 text(STYLESHEET)
         with tag('body'):
             with tag('h1'):
@@ -59,8 +59,8 @@ def write_html(book):
                 item('Subject', book.dc_metadata.subject)
             with tag('h2'):
                 text('Pages')
-            with tag('table', style='pages'):
-                with tag('tr', klass='headings'):
+            with tag('table', ('style', 'pages')):
+                with tag('tr', ('class', 'headings')):
                     with tag('th'): text('page number')
                     with tag('th'): text('thumbnail')
                     with tag('th'): text('page dimensions')
@@ -69,17 +69,17 @@ def write_html(book):
                     with tag('th'): text('picture regions')
                     with tag('th'): text('hilited images')
                 for page in book.pages:
-                    with tag('tr', klass='page'):
-                        with tag('td', klass='pagenumber'):
+                    with tag('tr', ('class', 'page')):
+                        with tag('td', ('class', 'pagenumber')):
                             with tag('div'):
                                 text('%04d' % page.sequence_number)
                             if page.page_number:
                                 with tag('div'):
                                     text('%d' % page.page_number)
-                        with tag('td', klass='thumbnail'):
-                            with tag('img', src=os.path.relpath(page.thumbnail_path(), book.directory)):
+                        with tag('td', ('class', 'thumbnail')):
+                            with tag('img', ('src', os.path.relpath(page.thumbnail_path(), book.directory))):
                                 pass
-                        with tag('td', klass='dimension'):
+                        with tag('td', ('class', 'dimension')):
                             try:
                                 dpi= page.metadata.dpi
                                 with tag('div'):
@@ -97,7 +97,7 @@ def write_html(book):
                                 if page.metadata.image_height:
                                     with tag('div'):
                                         text('OCR height: %d' % page.metadata.image_height)
-                        with tag('td', klass='margins'):
+                        with tag('td', ('class', 'margins')):
                             whole = page.jp2_region
                             txt = page.text_region()
                             if txt != None:
@@ -109,7 +109,7 @@ def write_html(book):
                                     text('top: %d' % (txt.top - whole.top))
                                 with tag('div'):
                                     text('bottom: %d' % (whole.bottom - txt.bottom))
-                        with tag('td', klass='line-count'):
+                        with tag('td', ('class', 'line-count')):
                             if page.metadata:
                                 text('%d' % page.metadata.line_count)
                                 doc.stag('br')
@@ -118,7 +118,7 @@ def write_html(book):
                             for r in page.picture_regions:
                                 with tag('div'):
                                      text(repr(r))
-                        with tag('td', klass='thumbnail'):
+                        with tag('td', ('class', 'thumbnail')):
                             with tag('img', src=os.path.relpath(page.thumbnail_path('hli'), book.directory)):
                                 pass
         with open(os.path.join(book.directory, 'pages.html'), 'w') as out:
